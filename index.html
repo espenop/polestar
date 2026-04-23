@@ -1,0 +1,433 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<link rel="icon" type="image/png" href="favicon.png" />
+<link rel="apple-touch-icon" href="favicon.png" />
+<title>Polestar 3 – Kjørebok</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet" />
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+  :root {
+    --bg: #0d0f12;
+    --surface: #161a20;
+    --surface2: #1e242d;
+    --border: rgba(255,255,255,0.07);
+    --accent: #00c8a0;
+    --accent2: #3b82f6;
+    --danger: #ef4444;
+    --warn: #f59e0b;
+    --text: #e8eaf0;
+    --muted: #6b7280;
+    --mono: 'DM Mono', monospace;
+    --sans: 'DM Sans', sans-serif;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--sans); min-height: 100vh; }
+
+  header {
+    border-bottom: 1px solid var(--border);
+    padding: 1.25rem 2rem;
+    display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;
+  }
+  .logo { display: flex; align-items: center; gap: 12px; }
+  .logo-mark {
+    width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+    background: linear-gradient(135deg, #00c8a0, #3b82f6);
+    display: flex; align-items: center; justify-content: center;
+    font-family: var(--mono); font-size: 13px; font-weight: 500; color: #000;
+  }
+  .logo-text { font-size: 14px; font-weight: 500; color: var(--text); }
+  .logo-sub { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 1px; }
+  .reg { font-family: var(--mono); font-size: 12px; color: var(--accent); background: rgba(0,200,160,0.08); padding: 4px 10px; border-radius: 4px; border: 1px solid rgba(0,200,160,0.2); white-space: nowrap; }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 2rem; }
+
+  .horizon-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 1.5rem; }
+  .horizon-box { background: var(--surface); border-radius: 10px; padding: 1.1rem 1.25rem; }
+  .horizon-box.blue { border: 1px solid rgba(59,130,246,0.25); }
+  .horizon-box.teal { border: 1px solid rgba(0,200,160,0.2); }
+  .horizon-label { font-size: 10px; font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.09em; margin-bottom: 10px; }
+  .horizon-box.blue .horizon-label { color: var(--accent2); }
+  .horizon-box.teal .horizon-label { color: var(--accent); }
+  .horizon-stats { display: flex; gap: 1.5rem; flex-wrap: wrap; }
+  .hstat .hlabel { font-size: 10px; color: var(--muted); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.05em; }
+  .hstat .hvalue { font-size: 20px; font-weight: 300; font-family: var(--mono); margin-top: 3px; }
+  .hstat .hsub { font-size: 10px; color: var(--muted); font-family: var(--mono); margin-top: 2px; }
+  .hstat.ok .hvalue { color: var(--accent); }
+  .hstat.warn .hvalue { color: var(--warn); }
+  .hstat.danger .hvalue { color: var(--danger); }
+  .hstat.blue .hvalue { color: var(--accent2); }
+
+  .metrics { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 10px; margin-bottom: 1.5rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1rem 1.1rem; }
+  .card .label { font-size: 10px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 5px; font-family: var(--mono); }
+  .card .value { font-size: 24px; font-weight: 300; font-family: var(--mono); color: var(--text); }
+  .card .sub { font-size: 10px; color: var(--muted); margin-top: 3px; font-family: var(--mono); }
+  .card.accent .value { color: var(--accent); }
+  .card.danger .value { color: var(--danger); }
+  .card.warn .value { color: var(--warn); }
+
+  .section { margin-bottom: 1.75rem; }
+  .section-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.1em; font-family: var(--mono); margin-bottom: 10px; }
+  .progress-group { margin-bottom: 1.25rem; }
+  .progress-row { display: flex; justify-content: space-between; font-size: 11px; font-family: var(--mono); color: var(--muted); margin-bottom: 5px; flex-wrap: wrap; gap: 4px; }
+  .progress-row span:last-child { color: var(--text); }
+  .bar-bg { background: var(--surface2); border-radius: 3px; height: 8px; overflow: hidden; margin-bottom: 10px; }
+  .bar-fill { height: 100%; border-radius: 3px; transition: width 0.6s ease; }
+
+  .status-row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .badge { font-size: 11px; font-family: var(--mono); padding: 4px 10px; border-radius: 4px; }
+  .badge.ok { background: rgba(0,200,160,0.1); color: var(--accent); border: 1px solid rgba(0,200,160,0.2); }
+  .badge.danger { background: rgba(239,68,68,0.1); color: var(--danger); border: 1px solid rgba(239,68,68,0.2); }
+  .badge.warn { background: rgba(245,158,11,0.1); color: var(--warn); border: 1px solid rgba(245,158,11,0.2); }
+
+  .chart-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.25rem; margin-bottom: 1.75rem; overflow: hidden; }
+  .chart-legend { display: flex; gap: 20px; margin-bottom: 1rem; flex-wrap: wrap; }
+  .legend-item { display: flex; align-items: center; gap: 6px; font-size: 11px; color: var(--muted); font-family: var(--mono); }
+  .legend-dot { width: 20px; height: 2px; border-radius: 2px; }
+  .chart-canvas-wrap { position: relative; height: 260px; }
+
+  .add-section { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 1.1rem 1.25rem; margin-bottom: 1.75rem; }
+  .add-row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-top: 10px; }
+  .field label { font-size: 10px; color: var(--muted); font-family: var(--mono); text-transform: uppercase; letter-spacing: 0.06em; display: block; margin-bottom: 5px; }
+  .field input { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; color: var(--text); font-family: var(--mono); font-size: 13px; padding: 8px 12px; outline: none; width: 160px; transition: border-color 0.2s; }
+  .field input:focus { border-color: var(--accent); }
+  .btn { background: var(--accent); color: #000; font-family: var(--mono); font-size: 12px; font-weight: 500; padding: 9px 16px; border: none; border-radius: 6px; cursor: pointer; transition: opacity 0.2s; white-space: nowrap; }
+  .btn:hover { opacity: 0.85; }
+  .btn-secondary { background: transparent; color: var(--muted); border: 1px solid var(--border); font-family: var(--mono); font-size: 12px; padding: 9px 16px; border-radius: 6px; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+  .btn-secondary:hover { color: var(--text); border-color: rgba(255,255,255,0.2); }
+  .add-msg { font-family: var(--mono); font-size: 11px; margin-top: 8px; min-height: 16px; }
+
+  .table-toolbar { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; margin-bottom: 10px; }
+  .table-wrap { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+  table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 12px; min-width: 560px; }
+  thead th { color: var(--muted); font-weight: 400; text-align: left; padding: 8px 10px; border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 0.06em; font-size: 10px; white-space: nowrap; }
+  tbody td { padding: 7px 10px; border-bottom: 1px solid var(--border); color: var(--text); white-space: nowrap; }
+  tbody tr:last-child td { border-bottom: none; }
+  tbody tr:hover td { background: var(--surface2); }
+  .del-btn { background: none; border: none; color: var(--muted); cursor: pointer; font-size: 14px; padding: 0 4px; line-height: 1; transition: color 0.15s; }
+  .del-btn:hover { color: var(--danger); }
+  .pos { color: var(--danger); }
+  .neg { color: var(--accent); }
+  .neutral { color: var(--muted); }
+
+  footer { text-align: center; padding: 2rem; font-size: 11px; color: var(--muted); font-family: var(--mono); border-top: 1px solid var(--border); margin-top: 1rem; }
+
+  @media (max-width: 680px) {
+    main { padding: 1rem; }
+    header { padding: 1rem; }
+    .horizon-grid { grid-template-columns: 1fr; }
+    .metrics { grid-template-columns: repeat(2, 1fr); }
+    .field input { width: 140px; }
+    .chart-canvas-wrap { height: 200px; }
+  }
+  @media (max-width: 400px) {
+    .card .value { font-size: 20px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">
+    <div class="logo-mark">P3</div>
+    <div>
+      <div class="logo-text">Polestar 3 – Kjørebok</div>
+      <div class="logo-sub">Leasingperiode 01.07.2025 → 01.07.2028</div>
+    </div>
+  </div>
+  <div class="reg">BU41936</div>
+</header>
+
+<main>
+  <div class="horizon-grid">
+    <div class="horizon-box blue">
+      <div class="horizon-label">Neste 7 dager</div>
+      <div class="horizon-stats" id="stats-7"></div>
+    </div>
+    <div class="horizon-box teal">
+      <div class="horizon-label">Neste 30 dager</div>
+      <div class="horizon-stats" id="stats-30"></div>
+    </div>
+  </div>
+
+  <div id="metrics" class="metrics"></div>
+
+  <div class="section">
+    <div class="section-label">Kvoteutnyttelse</div>
+    <div id="progress-group" class="progress-group"></div>
+    <div id="status-row" class="status-row"></div>
+  </div>
+
+  <div class="chart-wrap">
+    <div class="section-label">Kjørelengde over tid</div>
+    <div class="chart-legend">
+      <div class="legend-item"><div class="legend-dot" style="background:#00c8a0;"></div>Faktisk km</div>
+      <div class="legend-item"><div class="legend-dot" style="background:#3b82f6;"></div>Tillatt (pro rata)</div>
+    </div>
+    <div class="chart-canvas-wrap">
+      <canvas id="kmChart" role="img" aria-label="Linjediagram over faktisk vs tillatt kjørelengde"></canvas>
+    </div>
+  </div>
+
+  <div class="add-section">
+    <div class="section-label">Legg til datapunkt</div>
+    <div class="add-row">
+      <div class="field"><label>Dato</label><input type="date" id="inp-date" /></div>
+      <div class="field"><label>Kilometerstand</label><input type="number" id="inp-km" placeholder="f.eks. 13000" /></div>
+      <button class="btn" onclick="addPoint()">+ Legg til</button>
+    </div>
+    <div id="add-msg" class="add-msg"></div>
+  </div>
+
+  <div class="section">
+    <div class="table-toolbar">
+      <div class="section-label" style="margin-bottom:0;">Alle datapunkter (<span id="point-count">0</span>)</div>
+      <button class="btn-secondary" onclick="exportCSV()">↓ Eksporter CSV</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th><th>Dato</th><th>Km-stand</th>
+            <th>Kjørt siden forrige</th><th>Tillatt siden forrige</th>
+            <th>Endring over/under</th><th>Akkumulert over/under</th><th></th>
+          </tr>
+        </thead>
+        <tbody id="table-body"></tbody>
+      </table>
+    </div>
+  </div>
+</main>
+
+<footer>Polestar 3 · BU41936 · Leasingavtale 45 000 km / 1 095 dager · 2,50 kr/km overkjøring</footer>
+
+<script>
+const LEASE_START = new Date('2025-07-01');
+const LEASE_END   = new Date('2028-07-01');
+const TOTAL_KM    = 45000;
+const COST_PER_KM = 2.50;
+const LEASE_DAYS  = (LEASE_END - LEASE_START) / 86400000;
+const STORAGE_KEY = 'polestar3_points';
+
+const DEFAULT_DATA = [
+  ['2025-06-13',0],['2025-07-25',2723],['2025-08-05',2775],['2025-08-13',3058],
+  ['2025-08-22',3377],['2025-08-24',3513],['2025-09-06',3615],['2025-09-10',3918],
+  ['2025-09-13',4070],['2025-09-15',4102],['2025-09-18',4113],['2025-09-26',4461],
+  ['2025-09-30',4817],['2025-10-02',4874],['2025-10-07',4931],['2025-10-19',5213],
+  ['2025-11-03',6061],['2025-11-19',6401],['2025-11-25',6972],['2025-11-26',6989],
+  ['2025-12-05',7167],['2025-12-12',7310],['2026-01-09',7917],['2026-01-10',7951],
+  ['2026-01-12',7951],['2026-01-16',8009],['2026-01-21',8189],['2026-01-25',8893],
+  ['2026-01-26',8916],['2026-01-31',9089],['2026-02-03',9174],['2026-02-10',9312],
+  ['2026-02-13',9358],['2026-02-16',9476],['2026-02-18',9506],['2026-02-23',9603],
+  ['2026-02-26',9620],['2026-03-02',10170],['2026-03-07',10278],['2026-03-08',10309],
+  ['2026-03-17',10950],['2026-03-19',11014],['2026-03-23',11489],['2026-04-03',11985],
+  ['2026-04-11',12369],['2026-04-22',12721]
+];
+
+function loadPoints() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    if (saved) return JSON.parse(saved).map(([d,km]) => ({ date: new Date(d), km }));
+  } catch(e) {}
+  return DEFAULT_DATA.map(([d,km]) => ({ date: new Date(d), km }));
+}
+function savePoints() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(points.map(p => [p.date.toISOString().slice(0,10), p.km]))); } catch(e) {}
+}
+
+let points = loadPoints();
+let chartInstance = null;
+
+function days(from, to) { return (to - from) / 86400000; }
+function allowedAtDate(d) { return Math.max(0, (days(LEASE_START, d) / LEASE_DAYS) * TOTAL_KM); }
+function fmtDate(d) { return d.toLocaleDateString('nb-NO', { day:'2-digit', month:'2-digit', year:'numeric' }); }
+function fmtKm(n) { return Math.abs(Math.round(n)).toLocaleString('nb-NO'); }
+function signKm(n) { return (n >= 0 ? '+' : '-') + fmtKm(n); }
+
+function horizonCalc(currentOverUnder, horizonDays) {
+  const today = new Date();
+  const future = new Date(today.getTime() + horizonDays * 86400000);
+  const rawQuota = allowedAtDate(future) - allowedAtDate(today);
+  // Subtract existing over (positive = over = less room). Add existing under (negative = under = more room).
+  const adjusted = rawQuota - currentOverUnder;
+  const dailyMax = adjusted > 0 ? adjusted / horizonDays : 0;
+  return { adjusted: Math.round(adjusted), dailyMax };
+}
+
+function compute() {
+  const sorted = [...points].sort((a,b) => a.date - b.date);
+  const latest = sorted[sorted.length - 1];
+  const today = new Date();
+  const latestKm = latest.km;
+  const allowedNow = allowedAtDate(today);
+  const diff = latestKm - allowedNow;
+  const pctUsed = (latestKm / TOTAL_KM) * 100;
+  const kmLeft = TOTAL_KM - latestKm;
+  const daysRemaining = Math.max(0, days(today, LEASE_END));
+  const kmPerDayActual = latestKm / Math.max(1, days(LEASE_START, latest.date));
+  const projectedTotal = Math.round(latestKm + kmPerDayActual * daysRemaining);
+  const projectedOver = Math.max(0, projectedTotal - TOTAL_KM);
+  const maxDaily = kmLeft / Math.max(1, daysRemaining);
+  const h7  = horizonCalc(diff, 7);
+  const h30 = horizonCalc(diff, 30);
+  return { sorted, latestKm, allowedNow, diff, pctUsed, kmLeft, daysRemaining, projectedTotal, projectedOver, maxDaily, h7, h30 };
+}
+
+function renderHorizon(elId, h, n) {
+  const adjClass = h.adjusted <= 0 ? 'danger' : h.dailyMax < 20 ? 'warn' : 'ok';
+  const dailyClass = h.dailyMax <= 0 ? 'danger' : h.dailyMax < 20 ? 'warn' : 'ok';
+  const adjLabel = h.adjusted <= 0 ? '0 km – overforbruk må tas igjen' : fmtKm(h.adjusted) + ' km';
+  const dailyLabel = h.dailyMax <= 0 ? '0,0 km/dag' : h.dailyMax.toFixed(1) + ' km/dag';
+  document.getElementById(elId).innerHTML = `
+    <div class="hstat ${adjClass}">
+      <div class="hlabel">Tillatt å kjøre</div>
+      <div class="hvalue">${h.adjusted <= 0 ? '0' : fmtKm(h.adjusted)}</div>
+      <div class="hsub">${h.adjusted <= 0 ? 'må ta igjen overforbruk' : 'km inkl. innhenting'}</div>
+    </div>
+    <div class="hstat ${dailyClass}">
+      <div class="hlabel">Maks per dag</div>
+      <div class="hvalue">${h.dailyMax.toFixed(1)}</div>
+      <div class="hsub">km/dag for å nullstille</div>
+    </div>`;
+}
+
+function render() {
+  const c = compute();
+  renderHorizon('stats-7',  c.h7,  7);
+  renderHorizon('stats-30', c.h30, 30);
+
+  document.getElementById('metrics').innerHTML = `
+    <div class="card accent"><div class="label">Siste avlesing</div><div class="value">${fmtKm(c.latestKm)}</div><div class="sub">km totalt</div></div>
+    <div class="card ${c.diff > 0 ? 'danger' : 'accent'}"><div class="label">Over / under nå</div><div class="value">${signKm(c.diff)}</div><div class="sub">km ift. tillatt i dag</div></div>
+    <div class="card"><div class="label">Kvote igjen</div><div class="value">${fmtKm(c.kmLeft)}</div><div class="sub">km · ${Math.round(c.daysRemaining)} dager igjen</div></div>
+    <div class="card ${c.projectedOver > 0 ? 'danger' : 'accent'}"><div class="label">Prognose totalt</div><div class="value">${fmtKm(c.projectedTotal)}</div><div class="sub">${c.projectedOver > 0 ? '+' + fmtKm(c.projectedOver) + ' over' : 'innenfor kvote'}</div></div>
+    <div class="card"><div class="label">Maks daglig snitt</div><div class="value">${c.maxDaily.toFixed(1)}</div><div class="sub">km/dag for å holde kvoten</div></div>
+    <div class="card ${c.projectedOver > 0 ? 'warn' : 'accent'}"><div class="label">Est. overkjøringskost</div><div class="value">${c.projectedOver > 0 ? Math.round(c.projectedOver * COST_PER_KM).toLocaleString('nb-NO') : '0'}</div><div class="sub">kr (2,50 kr/km)</div></div>
+  `;
+
+  const barPct = Math.min(100, c.pctUsed).toFixed(1);
+  const allowedPct = Math.min(100, (c.allowedNow / TOTAL_KM) * 100).toFixed(1);
+  const barColor = c.pctUsed > 95 ? '#ef4444' : c.pctUsed > 85 ? '#f59e0b' : '#00c8a0';
+  document.getElementById('progress-group').innerHTML = `
+    <div class="progress-row"><span>Faktisk forbruk</span><span>${barPct}% · ${fmtKm(c.latestKm)} / 45 000 km</span></div>
+    <div class="bar-bg"><div class="bar-fill" style="width:${barPct}%; background:${barColor};"></div></div>
+    <div class="progress-row"><span>Forventet forbruk nå</span><span>${allowedPct}% · ${fmtKm(c.allowedNow)} / 45 000 km</span></div>
+    <div class="bar-bg"><div class="bar-fill" style="width:${allowedPct}%; background:#3b82f6;"></div></div>
+  `;
+
+  const progTag = c.projectedOver > 0
+    ? `<span class="badge danger">Prognose: overkjøring ${fmtKm(c.projectedOver)} km</span>`
+    : `<span class="badge ok">Prognose: innenfor kvote</span>`;
+  const nowTag = c.diff > 0
+    ? `<span class="badge warn">${fmtKm(c.diff)} km over pro-rata nå</span>`
+    : `<span class="badge ok">${fmtKm(Math.abs(c.diff))} km under pro-rata nå</span>`;
+  document.getElementById('status-row').innerHTML = progTag + nowTag;
+
+  document.getElementById('point-count').textContent = c.sorted.length;
+  const reversed = [...c.sorted].reverse();
+  const rows = reversed.map((p, revIdx) => {
+    const origIdx = c.sorted.length - 1 - revIdx;
+    const prev = origIdx > 0 ? c.sorted[origIdx - 1] : null;
+    const driven = prev ? p.km - prev.km : null;
+    const allowedInterval = prev ? allowedAtDate(p.date) - allowedAtDate(prev.date) : null;
+    const intervalDiff = (driven !== null && allowedInterval !== null) ? driven - allowedInterval : null;
+    const accDiff = p.km - allowedAtDate(p.date);
+    const driveStr = driven !== null ? '+' + fmtKm(driven) : '–';
+    const allowStr = allowedInterval !== null ? '+' + fmtKm(allowedInterval) : '–';
+    let diffStr = '–', diffClass = 'neutral';
+    if (intervalDiff !== null) {
+      diffStr = signKm(intervalDiff) + ' km';
+      diffClass = intervalDiff > 50 ? 'pos' : intervalDiff < -50 ? 'neg' : 'neutral';
+    }
+    const accClass = accDiff > 100 ? 'pos' : accDiff < -100 ? 'neg' : 'neutral';
+    const dateStr = p.date.toISOString().slice(0,10);
+    return `<tr>
+      <td style="color:var(--muted)">${origIdx + 1}</td>
+      <td>${fmtDate(p.date)}</td>
+      <td>${fmtKm(p.km)}</td>
+      <td style="color:var(--muted)">${driveStr}</td>
+      <td style="color:var(--muted)">${allowStr}</td>
+      <td class="${diffClass}">${diffStr}</td>
+      <td class="${accClass}">${signKm(accDiff)} km</td>
+      <td><button class="del-btn" onclick="deletePoint('${dateStr}')" title="Slett">×</button></td>
+    </tr>`;
+  });
+  document.getElementById('table-body').innerHTML = rows.join('');
+
+  drawChart(c);
+  if (!document.getElementById('inp-date').value)
+    document.getElementById('inp-date').value = new Date().toISOString().slice(0,10);
+}
+
+function drawChart(c) {
+  const ctx = document.getElementById('kmChart');
+  if (chartInstance) { chartInstance.destroy(); chartInstance = null; }
+  const labels = c.sorted.map(p => fmtDate(p.date));
+  const actualKm = c.sorted.map(p => p.km);
+  const allowedKm = c.sorted.map(p => Math.round(allowedAtDate(p.date)));
+  chartInstance = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Faktisk km', data: actualKm, borderColor: '#00c8a0', backgroundColor: 'rgba(0,200,160,0.06)', fill: true, tension: 0.3, pointRadius: 3, pointBackgroundColor: '#00c8a0', borderWidth: 2 },
+        { label: 'Tillatt (pro rata)', data: allowedKm, borderColor: '#3b82f6', borderDash: [5,4], backgroundColor: 'transparent', fill: false, tension: 0, pointRadius: 0, borderWidth: 1.5 }
+      ]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => `${ctx.dataset.label}: ${ctx.parsed.y.toLocaleString('nb-NO')} km` } } },
+      scales: {
+        x: { ticks: { maxTicksLimit: 10, maxRotation: 30, color: '#6b7280', font: { size: 10, family: "'DM Mono', monospace" } }, grid: { color: 'rgba(255,255,255,0.04)' } },
+        y: { ticks: { callback: v => v.toLocaleString('nb-NO'), color: '#6b7280', font: { size: 10, family: "'DM Mono', monospace" } }, grid: { color: 'rgba(255,255,255,0.04)' } }
+      }
+    }
+  });
+}
+
+function addPoint() {
+  const dateVal = document.getElementById('inp-date').value;
+  const kmVal = parseInt(document.getElementById('inp-km').value, 10);
+  const msg = document.getElementById('add-msg');
+  if (!dateVal || isNaN(kmVal) || kmVal < 0) { msg.style.color='#ef4444'; msg.textContent = 'Fyll inn gyldig dato og kilometerstand.'; return; }
+  const d = new Date(dateVal);
+  const existing = points.findIndex(p => p.date.toISOString().slice(0,10) === dateVal);
+  if (existing >= 0) { points[existing].km = kmVal; msg.style.color='#f59e0b'; msg.textContent = `Oppdaterte punkt for ${dateVal}.`; }
+  else { points.push({ date: d, km: kmVal }); msg.style.color='#00c8a0'; msg.textContent = `Lagt til: ${dateVal} — ${kmVal.toLocaleString('nb-NO')} km`; }
+  savePoints();
+  document.getElementById('inp-km').value = '';
+  render();
+}
+
+function deletePoint(dateStr) {
+  if (!confirm(`Slette datapunktet for ${dateStr}?`)) return;
+  points = points.filter(p => p.date.toISOString().slice(0,10) !== dateStr);
+  savePoints();
+  render();
+}
+
+function exportCSV() {
+  const sorted = [...points].sort((a,b) => a.date - b.date);
+  const rows = [['Dato','Km-stand','Kjort siden forrige','Tillatt siden forrige','Endring over/under','Akkumulert over/under']];
+  sorted.forEach((p, i) => {
+    const prev = i > 0 ? sorted[i-1] : null;
+    const driven = prev ? p.km - prev.km : '';
+    const allowedInterval = prev ? Math.round(allowedAtDate(p.date) - allowedAtDate(prev.date)) : '';
+    const intervalDiff = (driven !== '' && allowedInterval !== '') ? driven - allowedInterval : '';
+    const accDiff = Math.round(p.km - allowedAtDate(p.date));
+    rows.push([p.date.toISOString().slice(0,10), p.km, driven, allowedInterval,
+      intervalDiff !== '' ? (intervalDiff >= 0 ? '+' : '') + intervalDiff : '',
+      (accDiff >= 0 ? '+' : '') + accDiff]);
+  });
+  const csv = rows.map(r => r.join(';')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = 'polestar3_kjorebok.csv'; a.click();
+}
+
+render();
+</script>
+</body>
+</html>
